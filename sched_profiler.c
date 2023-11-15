@@ -6,10 +6,11 @@
 
 #define THREADS 4
 
-int BUFFER_SIZE = 1024 * 1024;
+
+int BUFFER_SIZE = 10000000; // 4KB
 
 char *buffer;
-int buffer_pointer;
+int buffer_pointer = 0;
 
 pthread_mutex_t mutex;
 
@@ -42,19 +43,19 @@ int main(void)
 
 	printf("=======================\n");
 
+    buffer_pointer = BUFFER_SIZE - 1; // gambiarra
+
     resume_buffer();
 
 	printf("%s\n", buffer);
-	printf("%c\n", buffer[BUFFER_SIZE - 1]);
+    printf("new_buffer_pointer: %d\n", buffer_pointer);
+    printf("buffer_size: %d\n", BUFFER_SIZE);
 
-    print_current_buffer();
+    int scheduled_threads_summary[THREADS];
 
+    count_scheduled_threads(scheduled_threads_summary);
 
-    // int scheduled_threads_summary[THREADS];
-
-    // count_scheduled_threads(scheduled_threads_summary);
-
-    // print_scheduled_threads_summary(scheduled_threads_summary);
+    print_scheduled_threads_summary(scheduled_threads_summary);
 
     free(buffer);
 	return 0;
@@ -66,9 +67,8 @@ void *task(void *thread_id)
 	id = (int)(long int) thread_id;
 
     while(buffer_pointer < BUFFER_SIZE) {
-        buffer[buffer_pointer] = 'A' + id;
-
 		pthread_mutex_lock(&mutex);
+        buffer[buffer_pointer] = 'A' + id;
 		buffer_pointer++;
 		pthread_mutex_unlock(&mutex);
     }
@@ -76,7 +76,7 @@ void *task(void *thread_id)
 }
 
 void resume_buffer() {
-    char current_letter, next_letter;
+    char current_letter, next_letter = 0;
     int new_buffer_pointer = 0;
     
     char *new_buffer = (char*) malloc(sizeof(char) * (BUFFER_SIZE)); // todo: alloc a small buffer and realloc if needs
@@ -90,15 +90,11 @@ void resume_buffer() {
         if (buffer[i] != buffer[i+1])  {
             printf("Current Letter %c\n", buffer[i+1]);
             new_buffer[++new_buffer_pointer] = buffer[i+1];
-
         }
-
-
-    printf("new_buffer_pointer: %d\n", new_buffer_pointer);
 
     BUFFER_SIZE = new_buffer_pointer + 1;
 
-    printf("BUFFER_SIZE: %d\n", BUFFER_SIZE);
+    // printf("BUFFER_SIZE: %d\n", BUFFER_SIZE);
 
     // buffer = (char*)realloc(buffer, sizeof(char) * BUFFER_SIZE);
 
@@ -119,12 +115,8 @@ void print_current_buffer() {
 
 void count_scheduled_threads(int *arr) {
     int i;
-    // for (i = 0; i < BUFFER_SIZE; i++) {
-    //     printf("%c",  buffer[i]);
-    // }
-
     for (i = 0; i < BUFFER_SIZE; i++) {
-        int letter_index = buffer[i] - 'A';
+        int letter_index = 'A' - buffer[i];
         arr[letter_index]++;
     }
     
@@ -134,7 +126,7 @@ void count_scheduled_threads(int *arr) {
 }
 
 void print_scheduled_threads_summary(int *arr) {
-    int i;
+    int i = 0;
     for (i = 0; i < 26; i++) {
         if (arr[i] == 0) {
             printf("%c: %d\n", ('A' + i), arr[i]);
